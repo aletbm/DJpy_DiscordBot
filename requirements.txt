@@ -1,0 +1,7 @@
+discord
+
+discord.py[voice]
+
+pytube
+
+moviepy
