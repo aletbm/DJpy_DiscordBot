@@ -9,3 +9,5 @@ discord.py[voice]
 pytube
 
 moviepy
+
+static-ffmpeg
