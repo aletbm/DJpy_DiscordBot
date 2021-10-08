@@ -1,14 +1,12 @@
 import discord
-from discord import guild
 from discord.ext import commands
 import datetime
-from urllib import parse, request
-import re
-import os
-import pytube
 from moviepy.editor import *
+import youtube_dl
+import asyncio
 
 bot = commands.Bot(command_prefix="!", description="This is a helper bot.")
+bot.help_command = MyHelpCommand()
 
 
 @bot.command()
@@ -17,12 +15,8 @@ async def ping(ctx):
 
 
 @bot.command()
-async def sum(ctx, a: int, b: int):
-    await ctx.send(a + b)
-
-
-@bot.command()
 async def info(ctx):
+
     embed = discord.Embed(
         title=f"{ctx.guild.name}",
         description="Lorem ipsum",
@@ -33,28 +27,13 @@ async def info(ctx):
     embed.add_field(name="Server Owner", value=f"{ctx.guild.owner}")
     embed.add_field(name="Server Region", value=f"{ctx.guild.region}")
     embed.add_field(name="Server ID", value=f"{ctx.guild.id}")
-    embed.set_thumbnail(
-        url="https://w1.pngwing.com/pngs/199/577/png-transparent-python-logo-programming-language-computer-programming-python-tutorial-highlevel-programming-language-java-generalpurpose-programming-language-statement.png"
-    )
+    embed.set_thumbnail(url=ctx.guild.icon_url)
     await ctx.send(embed=embed)
 
 
-@bot.command()
-async def yt(ctx, *, search):
-    query_string = parse.urlencode({"search_query": search})
-    html_content = request.urlopen("http://www.youtube.com/results?" + query_string)
-    search_results = re.findall(
-        'href="\\/watch\\?v=(.{11})', html_content.read().decode()
-    )
-    print(search_results)
-
-
-@bot.event
 async def on_ready():
     await bot.change_presence(
-        activity=discord.Streaming(
-            name="Tutorials", url="http://www.twitch.tv/accountname"
-        )
+        activity=discord.Activity(type=discord.ActivityType.listening, name="a song")
     )
     print("My Bot is Ready")
 
@@ -70,13 +49,25 @@ async def play(ctx, url: str):
 
     if voice.is_playing():
         voice.pause()
-    yt = pytube.YouTube(url)
-    path_video = yt.streams.filter(mime_type="audio/mp4").get_audio_only().download()
-    audio = AudioFileClip(path_video)
-    audio.write_audiofile("song.mp3")
-    os.remove(path_video)
 
-    voice.play(discord.FFmpegPCMAudio("song.mp3"))
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "wav",
+                "preferredquality": "192",
+            }
+        ],
+    }
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        song_info = ydl.extract_info(url, download=False)
+    voice.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
+    await bot.change_presence(
+        activity=discord.Activity(
+            type=discord.ActivityType.listening, name=song_info["title"]
+        )
+    )
 
 
 @bot.command()
@@ -110,6 +101,22 @@ async def resume(ctx):
 async def stop(ctx):
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     voice.stop()
+
+
+@bot.event
+async def on_voice_state_update(member, before, after):
+    if before.channel is None:
+        voice = after.channel.guild.voice_client
+        time = 0
+        while True:
+            await asyncio.sleep(1)
+            time = time + 1
+            if voice.is_playing() and not voice.is_paused():
+                time = 0
+            if time == 600:
+                await voice.disconnect()
+            if not voice.is_connected():
+                break
 
 
 bot.run(os.environ['DISCORD_TOKEN'])
