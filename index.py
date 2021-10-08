@@ -5,6 +5,7 @@ from moviepy.editor import *
 import youtube_dl
 import asyncio
 
+
 class MyHelpCommand(commands.MinimalHelpCommand):
     async def send_pages(self):
         destination = self.get_destination()
@@ -16,6 +17,7 @@ class MyHelpCommand(commands.MinimalHelpCommand):
 
 bot = commands.Bot(command_prefix="!", description="This is a helper bot.")
 bot.help_command = MyHelpCommand()
+
 
 @bot.command()
 async def ping(ctx):
@@ -39,6 +41,7 @@ async def info(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.event
 async def on_ready():
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.listening, name="a song")
@@ -78,7 +81,7 @@ async def play(ctx, url: str):
             )
         )
     except youtube_dl.utils.DownloadError:
-        print("This video is not available.")
+        await ctx.send("This video is not available.")
 
 
 @bot.command()
@@ -86,6 +89,11 @@ async def leave(ctx):
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice.is_connected():
         await voice.disconnect()
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.listening, name="a song"
+            )
+        )
     else:
         await ctx.send("The bot is not connected to a voice channel.")
 
@@ -112,6 +120,9 @@ async def resume(ctx):
 async def stop(ctx):
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     voice.stop()
+    await bot.change_presence(
+        activity=discord.Activity(type=discord.ActivityType.listening, name="a song")
+    )
 
 
 @bot.event
@@ -128,6 +139,5 @@ async def on_voice_state_update(member, before, after):
                 await voice.disconnect()
             if not voice.is_connected():
                 break
-
 
 bot.run(os.environ['DISCORD_TOKEN'])
