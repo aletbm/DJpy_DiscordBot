@@ -68,14 +68,17 @@ async def play(ctx, url: str):
             }
         ],
     }
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        song_info = ydl.extract_info(url, download=False)
-    voice.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
-    await bot.change_presence(
-        activity=discord.Activity(
-            type=discord.ActivityType.listening, name=song_info["title"]
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            song_info = ydl.extract_info(url, download=False)
+        voice.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
+        await bot.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.listening, name=song_info["title"]
+            )
         )
-    )
+    except youtube_dl.utils.DownloadError:
+        print("This video is not available.")
 
 
 @bot.command()
