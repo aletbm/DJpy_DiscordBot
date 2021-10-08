@@ -112,4 +112,4 @@ async def stop(ctx):
     voice.stop()
 
 
-bot.run(os.environ[DISCORD_TOKEN])
+bot.run(os.environ['DISCORD_TOKEN'])
