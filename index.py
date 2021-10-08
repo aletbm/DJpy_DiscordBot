@@ -5,9 +5,17 @@ from moviepy.editor import *
 import youtube_dl
 import asyncio
 
+class MyHelpCommand(commands.MinimalHelpCommand):
+    async def send_pages(self):
+        destination = self.get_destination()
+        e = discord.Embed(color=discord.Color.blurple(), description="")
+        for page in self.paginator.pages:
+            e.description += page
+        await destination.send(embed=e)
+
+
 bot = commands.Bot(command_prefix="!", description="This is a helper bot.")
 bot.help_command = MyHelpCommand()
-
 
 @bot.command()
 async def ping(ctx):
