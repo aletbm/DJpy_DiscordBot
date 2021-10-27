@@ -8,6 +8,4 @@ discord.py[voice]
 
 youtube-dl
 
-moviepy
-
 static-ffmpeg
