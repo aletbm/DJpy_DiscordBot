@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 import datetime
-from moviepy.editor import *
 import youtube_dl
 import asyncio
 
@@ -50,6 +49,29 @@ async def on_ready():
 
 
 @bot.command()
+async def dwl(ctx, url: str):
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "postprocessors": [
+            {
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": "192",
+            }
+        ],
+    }
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            song_info = ydl.extract_info(url, download=False)
+            embed = discord.Embed()
+            audiomp3 = [x for x in song_info['formats'] if (x['vcodec'] == 'none') and (x['ext'] == 'm4a')]
+            embed.description = (f":headphones: [Descargar cancion]({audiomp3[0]['url']}).")
+            await ctx.send(embed=embed)
+    except youtube_dl.utils.DownloadError:
+        await ctx.send("This video is not available.")
+
+
+@bot.command()
 async def play(ctx, url: str):
     voiceChannel = discord.utils.get(ctx.guild.voice_channels, name="General")
     try:
@@ -74,6 +96,10 @@ async def play(ctx, url: str):
     try:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             song_info = ydl.extract_info(url, download=False)
+            embed = discord.Embed()
+            audiomp3 = [x for x in song_info['formats'] if (x['vcodec'] == 'none') and (x['ext'] == 'm4a')]
+            embed.description = (f":headphones: [Descargar cancion]({audiomp3[0]['url']}).")     # song_info['formats'][0]['url'])
+            await ctx.send(embed=embed)
         voice.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
         await bot.change_presence(
             activity=discord.Activity(
