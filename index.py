@@ -2,8 +2,7 @@ import discord
 from discord.ext import commands
 import datetime
 import youtube_dl
-import asyncio
-import os
+from discord.ext import tasks
 
 
 class MyHelpCommand(commands.MinimalHelpCommand):
@@ -66,23 +65,35 @@ async def dwl(ctx, url: str):
             song_info = ydl.extract_info(url, download=False)
             embed = discord.Embed()
             audiomp3 = [x for x in song_info['formats'] if (x['vcodec'] == 'none') and (x['ext'] == 'm4a')]
-            embed.description = (f":headphones: [Descargar cancion]({audiomp3[0]['url']}).")
+            embed.description = (f":headphones: [Descargar cancion]({audiomp3[0]['url']}).")     # song_info['formats'][0]['url'])
             await ctx.send(embed=embed)
+            # ydl.download([url])
     except youtube_dl.utils.DownloadError:
         await ctx.send("This video is not available.")
 
 
 @bot.command()
-async def play(ctx, url: str):
-    voiceChannel = discord.utils.get(ctx.guild.voice_channels, name="General")
-    try:
-        await voiceChannel.connect()
-    except:
-        pass
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+async def leave(ctx):
+    if not ctx.message.author.voice:
+        await ctx.send("{} is not connected to a voice channel".format(ctx.message.author.name))
+        return
+    else:
+        channel = ctx.message.author.voice.channel
+    await channel.connect()
 
-    if voice.is_playing():
-        voice.pause()
+
+@bot.command()
+async def play(ctx, url: str):
+    # voiceChannel = discord.utils.get(ctx.guild.voice_channels, name="General")
+    # try:
+    #     await voiceChannel.connect()
+    # except:
+    #     pass
+
+    # voice = discord.utils.get(ctx.guild.voice_channels, guild=ctx.guild)
+    
+    # if voice.is_playing():
+    #     voice.pause()
 
     ydl_opts = {
         "format": "bestaudio/best",
@@ -95,6 +106,8 @@ async def play(ctx, url: str):
         ],
     }
     try:
+        server = ctx.message.guild
+        voice = server.voice_client
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             song_info = ydl.extract_info(url, download=False)
             embed = discord.Embed()
@@ -111,18 +124,18 @@ async def play(ctx, url: str):
         await ctx.send("This video is not available.")
 
 
-@bot.command()
-async def leave(ctx):
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    if voice.is_connected():
-        await voice.disconnect()
-        await bot.change_presence(
-            activity=discord.Activity(
-                type=discord.ActivityType.listening, name="a song"
-            )
-        )
-    else:
-        await ctx.send("The bot is not connected to a voice channel.")
+# @bot.command()
+# async def leave(ctx):
+#     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+#     if voice.is_connected():
+#         await voice.disconnect()
+#         await bot.change_presence(
+#             activity=discord.Activity(
+#                 type=discord.ActivityType.listening, name="a song"
+#             )
+#         )
+#     else:
+#         await ctx.send("The bot is not connected to a voice channel.")
 
 
 @bot.command()
@@ -152,19 +165,19 @@ async def stop(ctx):
     )
 
 
-@bot.event
+@tasks.loop(seconds=1.0)
 async def on_voice_state_update(member, before, after):
     if before.channel is None:
         voice = after.channel.guild.voice_client
         time = 0
         while True:
-            await asyncio.sleep(1)
             time = time + 1
             if voice.is_playing() and not voice.is_paused():
                 time = 0
-            if time == 600:
+            if time == 50:
                 await voice.disconnect()
             if not voice.is_connected():
                 break
 
-bot.run(os.environ['DISCORD_TOKEN'])
+
+bot.run("ODk1NzYxOTY3OTgwMDg1MjY5.YV9RVw.GZ4run_PLm7jgLnptuYRV36kn7Q")
