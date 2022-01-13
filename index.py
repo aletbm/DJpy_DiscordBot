@@ -180,4 +180,4 @@ async def on_voice_state_update(member, before, after):
                 break
 
 
-bot.run(DISCORD_TOKEN)
+bot.run(os.environ['DISCORD_TOKEN'])
