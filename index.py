@@ -3,6 +3,7 @@ from discord.ext import commands
 import datetime
 import youtube_dl
 from discord.ext import tasks
+import os
 
 
 class MyHelpCommand(commands.MinimalHelpCommand):
