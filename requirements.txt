@@ -1,11 +1,11 @@
-git+https://github.com/Rapptz/discord.py
-
-ffmpeg
+git+https://github.com/Rapptz/discord.py.git@master
 
 discord
 
 discord.py[voice]
 
-youtube-dl
+youtube_dl
+
+ffmpeg
 
 static-ffmpeg
