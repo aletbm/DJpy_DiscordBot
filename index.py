@@ -8,11 +8,13 @@ from discord.ext.commands import CommandNotFound
 import os
 
 song1 = song2 = song3 = song4 = song5 = ""
-
+playlist = []
+index = 0
 intents = discord.Intents.all()
 intents.members = True
 
 ydl_opts = {
+    "playlistend": 30,
     "format": "bestaudio/best",
     "postprocessors": [
         {
@@ -149,17 +151,28 @@ async def leave(ctx):
         await ctx.voice_client.disconnect()
 
 
-def next_song(ctx, lista):
+@bot.command()
+async def next_(ctx):
+    await next_song(ctx)
+
+
+def next_song(ctx):
+    global playlist, index
+    index += 1
     server = ctx.message.guild
     voice = server.voice_client
-    if len(lista) == 1:
+    if voice.is_playing():
+        voice.pause()
+    if len(playlist) == index + 1:
         voice.play(
-            discord.FFmpegPCMAudio(lista[0]["formats"][0]["url"], **ffmpeg_options)
+            discord.FFmpegPCMAudio(
+                playlist[index]["formats"][0]["url"], **ffmpeg_options
+            )
         )
         return
     voice.play(
-        discord.FFmpegPCMAudio(lista[0]["formats"][0]["url"], **ffmpeg_options),
-        after=lambda x: next_song(ctx, lista[1:]),
+        discord.FFmpegPCMAudio(playlist[index]["formats"][0]["url"], **ffmpeg_options),
+        after=lambda x: next_song(ctx),
     )
 
 
@@ -170,6 +183,7 @@ async def play(ctx, url: str, dwl=True):
         server = ctx.message.guild
         voice = server.voice_client
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            await ctx.send("Loading, wait for seconds...")
             song_info = ydl.extract_info(url, download=False)
             if len(song_info) == 1:
                 if dwl is True:
@@ -196,18 +210,34 @@ async def play(ctx, url: str, dwl=True):
             )
 
         else:
+            global playlist, index
+            playlist = song_info["entries"]
+            index = 0
+            view = discord.ui.View()
+            btn_next = discord.ui.Button(
+                style=discord.ButtonStyle.green, label="Next", emoji="⏭️"
+            )
+
+            async def button_next(interaction):
+                next_song(ctx)
+                await interaction.response.edit_message()
+
+            btn_next.callback = button_next
             voice.play(
                 discord.FFmpegPCMAudio(
-                    song_info["entries"][0]["formats"][0]["url"], **ffmpeg_options
+                    playlist[index]["formats"][0]["url"], **ffmpeg_options
                 ),
-                after=lambda x: next_song(ctx, song_info["entries"][1:]),
+                after=lambda x: next_song(ctx),
             )
             await bot.change_presence(
                 activity=discord.Activity(
                     type=discord.ActivityType.listening,
-                    name=song_info["entries"][0]["title"],
+                    name=playlist[0]["title"],
                 )
             )
+
+            view.add_item(item=btn_next)
+            await ctx.send(view=view)
 
     except youtube_dl.utils.DownloadError:
         await ctx.send("This video is not available.")
@@ -215,7 +245,6 @@ async def play(ctx, url: str, dwl=True):
 
 @bot.command()
 async def pause(ctx):
-    await join(ctx)
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice.is_playing():
         voice.pause()
@@ -225,7 +254,6 @@ async def pause(ctx):
 
 @bot.command()
 async def resume(ctx):
-    await join(ctx)
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice.is_paused():
         voice.resume()
@@ -262,7 +290,7 @@ class song:
         self.ctx = ctx
         self.video = video
         self.embed = discord.Embed(color=0x8934EB)
-        self.view = discord.ui.View()
+        self.view = discord.ui.View(timeout=240)
         self.embed.title = self.video["title"]
         self.embed.set_author(name=self.video["uploader"])
         self.embed.add_field(
@@ -325,6 +353,7 @@ async def search(ctx, *, arg: str):
     global song1, song2, song3, song4, song5
     await join(ctx)
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        await ctx.send("Searching...")
         try:
             get(arg)
         except:
@@ -349,7 +378,9 @@ async def search(ctx, *, arg: str):
         await song5.send_embed()
         await song5.send_view()
     else:
-        await ctx.send("Search error.")
+        await ctx.send("ERROR.")
 
 
-bot.run(os.environ["DISCORD_TOKEN"])
+bot.run("ODk1NzYxOTY3OTgwMDg1MjY5.YV9RVw.u9yGrdJOfWBJc4KdpGRSlBeQgIU")
+
+# bot.run(os.environ["DISCORD_TOKEN"])
