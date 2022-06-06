@@ -381,6 +381,4 @@ async def search(ctx, *, arg: str):
         await ctx.send("ERROR.")
 
 
-bot.run("ODk1NzYxOTY3OTgwMDg1MjY5.YV9RVw.u9yGrdJOfWBJc4KdpGRSlBeQgIU")
-
-# bot.run(os.environ["DISCORD_TOKEN"])
+bot.run(os.environ["DISCORD_TOKEN"])
